@@ -11,7 +11,7 @@ A full-featured [NATS](https://nats.io) messaging client for Common Lisp.
 - **Auto-Reconnect** -- exponential backoff, server rotation, subscription replay
 - **Cluster Discovery** -- automatic discovery of cluster nodes via `connect_urls`
 - **Keep-Alive** -- periodic PING/PONG with stale connection detection
-- **Cancellation** -- [cl-cancel](https://github.com/anthropics/cl-cancel) for timeouts and clean shutdown
+- **Cancellation** -- [cl-cancel](https://github.com/atgreen/cl-cancel) for timeouts and clean shutdown
 
 ## Installation
 
