@@ -7,7 +7,7 @@ A full-featured [NATS](https://nats.io) messaging client for Common Lisp.
 - **Pub/Sub** -- publish messages and subscribe with callbacks
 - **Request-Reply** -- synchronous request with timeout
 - **Headers** -- NATS headers support (HPUB/HMSG)
-- **TLS 1.3** -- via [pure-tls](https://github.com/atgreen/pure-tls) (no OpenSSL)
+- **TLS 1.3** -- via [pure-tls](https://github.com/atgreen/pure-tls)
 - **Auto-Reconnect** -- exponential backoff, server rotation, subscription replay
 - **Cluster Discovery** -- automatic discovery of cluster nodes via `connect_urls`
 - **Keep-Alive** -- periodic PING/PONG with stale connection detection
