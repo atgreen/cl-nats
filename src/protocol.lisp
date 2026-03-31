@@ -19,13 +19,13 @@
 (defun validate-protocol-string (value name)
   "Validate that VALUE is safe for use in NATS wire protocol.
 Rejects CR, LF, null bytes, and tabs which could inject commands."
-  (when value
-    (when (find-if (lambda (c)
-                     (member c '(#\Return #\Newline #\Null #\Tab)))
-                   value)
-      (error 'nats-protocol-error
-             :line value
-             :message (format nil "~A contains illegal characters (CR, LF, null, or tab)" name))))
+  (when (and value
+             (find-if (lambda (c)
+                        (member c '(#\Return #\Newline #\Null #\Tab)))
+                      value))
+    (error 'nats-protocol-error
+           :line value
+           :message (format nil "~A contains illegal characters (CR, LF, null, or tab)" name)))
   value)
 
 (defun validate-header-name (name)
