@@ -18,11 +18,13 @@
     (if status
         (push (format nil "~a ~a~@[ ~a~]" *nats-header-version* status status-text) lines)
         (push *nats-header-version* lines))
-    ;; Header lines
+    ;; Header lines (CLSEC-2026-0128: validate names and values)
     (dolist (pair headers)
       (let ((name (first pair))
             (values (rest pair)))
+        (validate-header-name name)
         (dolist (val (if (listp values) values (list values)))
+          (validate-header-value (princ-to-string val))
           (push (format nil "~a: ~a" name val) lines))))
     ;; Build final string with CRLF
     (let ((result (with-output-to-string (s)

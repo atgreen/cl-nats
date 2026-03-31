@@ -75,6 +75,25 @@
   ;; Server index for round-robin
   (server-index 0 :type integer))
 
+;; CLSEC-2026-0125: Redact credentials in printed representation
+(defmethod print-object ((conn connection) stream)
+  (print-unreadable-object (conn stream :type t :identity t)
+    (format stream "~A :status ~A"
+            (or (connection-name conn) "(unnamed)")
+            (connection-status conn))
+    (when (connection-user conn)
+      (format stream " :user ~S" (connection-user conn)))
+    (when (connection-pass conn)
+      (format stream " :pass <REDACTED>"))
+    (when (connection-auth-token conn)
+      (format stream " :auth-token <REDACTED>"))))
+
+;; CLSEC-2026-0127: Control whether server-discovered URLs are accepted
+(defvar *allow-discovered-servers* t
+  "When NIL, server-supplied connect_urls are ignored.
+Set to NIL in security-sensitive environments to prevent a malicious
+server from redirecting the client to attacker-controlled endpoints.")
+
 (defun connection-set-status (conn new-status)
   "Thread-safe status update."
   (bt2:with-lock-held ((connection-status-lock conn))
@@ -124,7 +143,8 @@
         (let ((info (parse-info-json data)))
           (setf (connection-server-info conn) info)
           ;; Merge connect_urls
-          (when (server-info-connect-urls info)
+          (when (and *allow-discovered-servers*
+                        (server-info-connect-urls info))
             (merge-connect-urls conn (server-info-connect-urls info)))
           ;; TLS upgrade if required
           (when (and (server-info-tls-required info)
@@ -133,6 +153,13 @@
                                    (or (connection-tls-name conn)
                                        (transport-host transport))
                                    :cancel-context (connection-cancel-context conn))))))
+    ;; CLSEC-2026-0121: Warn when sending credentials over non-TLS
+    (when (and (or (connection-user conn)
+                   (connection-pass conn)
+                   (connection-auth-token conn))
+               (not (transport-tls-p transport)))
+      (warn "NATS credentials are being sent over an unencrypted connection. ~
+             Use tls:// or nats+tls:// for secure authentication."))
     ;; 2. Send CONNECT
     (let ((connect-str (format-connect (build-connect-json conn))))
       (transport-write-string transport connect-str))
@@ -225,8 +252,14 @@
 (defun handle-msg (conn parsed)
   "Handle a MSG: read payload bytes, create message, dispatch."
   (let* ((byte-count (parsed-msg-byte-count parsed))
-         (transport (connection-transport conn))
-         (payload (transport-read-bytes transport byte-count)))
+         (transport (connection-transport conn)))
+    ;; CLSEC-2026-0124: Reject oversized payloads
+    (when (> byte-count *max-payload-size*)
+      (error 'nats-protocol-error
+             :line (format nil "MSG byte-count=~D" byte-count)
+             :message (format nil "Payload ~:D bytes exceeds maximum ~:D"
+                              byte-count *max-payload-size*)))
+    (let ((payload (transport-read-bytes transport byte-count)))
     ;; Read trailing CRLF
     (transport-read-line transport)
     (let ((msg (make-message :subject (parsed-msg-subject parsed)
@@ -245,8 +278,18 @@
   "Handle an HMSG: read payload bytes, split headers, create message, dispatch."
   (let* ((total-bytes (parsed-hmsg-total-bytes parsed))
          (header-bytes (parsed-hmsg-header-bytes parsed))
-         (transport (connection-transport conn))
-         (all-data (transport-read-bytes transport total-bytes)))
+         (transport (connection-transport conn)))
+    ;; CLSEC-2026-0124: Reject oversized payloads and validate header/total relationship
+    (when (> total-bytes *max-payload-size*)
+      (error 'nats-protocol-error
+             :line (format nil "HMSG total-bytes=~D" total-bytes)
+             :message (format nil "Payload ~:D bytes exceeds maximum ~:D"
+                              total-bytes *max-payload-size*)))
+    (when (> header-bytes total-bytes)
+      (error 'nats-protocol-error
+             :line (format nil "HMSG header-bytes=~D total-bytes=~D" header-bytes total-bytes)
+             :message "Header bytes exceeds total bytes"))
+    (let ((all-data (transport-read-bytes transport total-bytes)))
     ;; Read trailing CRLF
     (transport-read-line transport)
     (let* ((header-octets (subseq all-data 0 header-bytes))

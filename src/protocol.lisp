@@ -11,6 +11,36 @@
 
 (defvar *crlf* (coerce '(#\Return #\Newline) 'string))
 
+;;; --- Input validation (CLSEC-2026-0123/0128) ---
+
+(defvar *max-payload-size* (* 64 1024 1024)
+  "Maximum payload size in bytes (64MB). Protects against malicious server byte counts.")
+
+(defun validate-protocol-string (value name)
+  "Validate that VALUE is safe for use in NATS wire protocol.
+Rejects CR, LF, null bytes, and tabs which could inject commands."
+  (when value
+    (when (find-if (lambda (c)
+                     (member c '(#\Return #\Newline #\Null #\Tab)))
+                   value)
+      (error 'nats-protocol-error
+             :line value
+             :message (format nil "~A contains illegal characters (CR, LF, null, or tab)" name))))
+  value)
+
+(defun validate-header-name (name)
+  "Validate a NATS header name."
+  (validate-protocol-string name "Header name")
+  (when (find #\: name)
+    (error 'nats-protocol-error
+           :line name
+           :message "Header name contains colon"))
+  name)
+
+(defun validate-header-value (value)
+  "Validate a NATS header value."
+  (validate-protocol-string value "Header value"))
+
 ;;; --- Formatting (outbound) ---
 
 (defun format-connect (info-alist)
@@ -20,6 +50,8 @@
 
 (defun format-pub (subject payload &key reply-to)
   "Format a PUB command. PAYLOAD is octets. Returns string for header + octets for payload."
+  (validate-protocol-string subject "Subject")
+  (when reply-to (validate-protocol-string reply-to "Reply-to"))
   (let* ((size (length payload))
          (header (if reply-to
                      (format nil "PUB ~a ~a ~d~a" subject reply-to size *crlf*)
@@ -28,6 +60,8 @@
 
 (defun format-hpub (subject payload header-octets &key reply-to)
   "Format an HPUB command. PAYLOAD and HEADER-OCTETS are octets."
+  (validate-protocol-string subject "Subject")
+  (when reply-to (validate-protocol-string reply-to "Reply-to"))
   (let* ((hdr-len (length header-octets))
          (total-len (+ hdr-len (length payload)))
          (header (if reply-to
@@ -37,6 +71,8 @@
 
 (defun format-sub (subject sid &key queue-group)
   "Format a SUB command."
+  (validate-protocol-string subject "Subject")
+  (when queue-group (validate-protocol-string queue-group "Queue group"))
   (if queue-group
       (format nil "SUB ~a ~a ~a~a" subject queue-group sid *crlf*)
       (format nil "SUB ~a ~a~a" subject sid *crlf*)))

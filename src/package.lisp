@@ -51,6 +51,11 @@
    #:on-disconnect
    #:on-reconnect
    #:on-error
-   #:on-close))
+   #:on-close
+
+   ;; Security configuration
+   #:*max-payload-size*
+   #:*allow-discovered-servers*
+   #:validate-protocol-string))
 
 (in-package #:cl-nats)
