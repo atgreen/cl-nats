@@ -11,7 +11,7 @@
 
 (defvar *crlf* (coerce '(#\Return #\Newline) 'string))
 
-;;; --- Input validation (CLSEC-2026-0123/0128) ---
+;;; --- Input validation (CL-SEC-2026-0123/0128) ---
 
 (defvar *max-payload-size* (* 64 1024 1024)
   "Maximum payload size in bytes (64MB). Protects against malicious server byte counts.")

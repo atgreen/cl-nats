@@ -18,7 +18,7 @@
     (if status
         (push (format nil "~a ~a~@[ ~a~]" *nats-header-version* status status-text) lines)
         (push *nats-header-version* lines))
-    ;; Header lines (CLSEC-2026-0128: validate names and values)
+    ;; Header lines (CL-SEC-2026-0128: validate names and values)
     (dolist (pair headers)
       (let ((name (first pair))
             (values (rest pair)))

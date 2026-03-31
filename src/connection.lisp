@@ -75,7 +75,7 @@
   ;; Server index for round-robin
   (server-index 0 :type integer))
 
-;; CLSEC-2026-0125: Redact credentials in printed representation
+;; CL-SEC-2026-0125: Redact credentials in printed representation
 (defmethod print-object ((conn connection) stream)
   (print-unreadable-object (conn stream :type t :identity t)
     (format stream "~A :status ~A"
@@ -88,7 +88,7 @@
     (when (connection-auth-token conn)
       (format stream " :auth-token <REDACTED>"))))
 
-;; CLSEC-2026-0127: Control whether server-discovered URLs are accepted
+;; CL-SEC-2026-0127: Control whether server-discovered URLs are accepted
 (defvar *allow-discovered-servers* t
   "When NIL, server-supplied connect_urls are ignored.
 Set to NIL in security-sensitive environments to prevent a malicious
@@ -153,7 +153,7 @@ server from redirecting the client to attacker-controlled endpoints.")
                                    (or (connection-tls-name conn)
                                        (transport-host transport))
                                    :cancel-context (connection-cancel-context conn))))))
-    ;; CLSEC-2026-0121: Warn when sending credentials over non-TLS
+    ;; CL-SEC-2026-0121: Warn when sending credentials over non-TLS
     (when (and (or (connection-user conn)
                    (connection-pass conn)
                    (connection-auth-token conn))
@@ -253,7 +253,7 @@ server from redirecting the client to attacker-controlled endpoints.")
   "Handle a MSG: read payload bytes, create message, dispatch."
   (let* ((byte-count (parsed-msg-byte-count parsed))
          (transport (connection-transport conn)))
-    ;; CLSEC-2026-0124: Reject oversized payloads
+    ;; CL-SEC-2026-0124: Reject oversized payloads
     (when (> byte-count *max-payload-size*)
       (error 'nats-protocol-error
              :line (format nil "MSG byte-count=~D" byte-count)
@@ -279,7 +279,7 @@ server from redirecting the client to attacker-controlled endpoints.")
   (let* ((total-bytes (parsed-hmsg-total-bytes parsed))
          (header-bytes (parsed-hmsg-header-bytes parsed))
          (transport (connection-transport conn)))
-    ;; CLSEC-2026-0124: Reject oversized payloads and validate header/total relationship
+    ;; CL-SEC-2026-0124: Reject oversized payloads and validate header/total relationship
     (when (> total-bytes *max-payload-size*)
       (error 'nats-protocol-error
              :line (format nil "HMSG total-bytes=~D" total-bytes)

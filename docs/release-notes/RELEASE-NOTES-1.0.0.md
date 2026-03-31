@@ -3,18 +3,18 @@
 **Release date:** 2026-03-31
 
 This release addresses **8 security findings** identified by the
-[CLSEC initiative](https://github.com/atgreen/CLSEC).
+[CL-SEC initiative](https://github.com/CL-SEC/CL-SEC).
 
 ## Security Fixes
 
-### CLSEC-2026-0121 — Credentials sent in cleartext (HIGH)
+### CL-SEC-2026-0121 — Credentials sent in cleartext (HIGH)
 
 Credentials were sent over non-TLS connections without warning.
 
 **Fix:** A warning is now emitted when `user`, `pass`, or `auth-token`
 are provided on a non-TLS connection.
 
-### CLSEC-2026-0122 — No TLS certificate verification configuration (HIGH)
+### CL-SEC-2026-0122 — No TLS certificate verification configuration (HIGH)
 
 TLS verification behavior depended entirely on pure-tls defaults with
 no user control.
@@ -23,7 +23,7 @@ no user control.
 default.  Future releases will expose `:tls-verify` and `:tls-ca-file`
 options.
 
-### CLSEC-2026-0123 — NATS protocol injection via CRLF in subjects (HIGH)
+### CL-SEC-2026-0123 — NATS protocol injection via CRLF in subjects (HIGH)
 
 Subject names, reply-to addresses, and queue groups were interpolated
 into wire protocol commands with no validation.  A subject containing
@@ -33,7 +33,7 @@ into wire protocol commands with no validation.  A subject containing
 `validate-protocol-string`, which rejects CR, LF, null, and tab
 characters.
 
-### CLSEC-2026-0124 — Unbounded memory allocation from server byte counts (HIGH)
+### CL-SEC-2026-0124 — Unbounded memory allocation from server byte counts (HIGH)
 
 A malicious server could send a MSG line with an enormous byte count,
 causing the client to allocate gigabytes.
@@ -42,7 +42,7 @@ causing the client to allocate gigabytes.
 `*max-payload-size*` (default 64MB).  HMSG header-bytes vs total-bytes
 relationship is validated.
 
-### CLSEC-2026-0125 — Credentials in plaintext in connection struct (MEDIUM)
+### CL-SEC-2026-0125 — Credentials in plaintext in connection struct (MEDIUM)
 
 Printing a connection object at the REPL displayed passwords in
 cleartext.
@@ -50,14 +50,14 @@ cleartext.
 **Fix:** `print-object` for `connection` now redacts `pass` and
 `auth-token` fields.
 
-### CLSEC-2026-0126 — Credential leakage in error conditions (MEDIUM)
+### CL-SEC-2026-0126 — Credential leakage in error conditions (MEDIUM)
 
 Error messages during connection failure could include the CONNECT JSON
 with credentials.
 
 **Fix:** Error paths no longer include raw CONNECT payloads.
 
-### CLSEC-2026-0127 — Server-supplied connect_urls enable SSRF (MEDIUM)
+### CL-SEC-2026-0127 — Server-supplied connect_urls enable SSRF (MEDIUM)
 
 A malicious server could redirect the client (with credentials) to
 attacker-controlled endpoints.
@@ -66,7 +66,7 @@ attacker-controlled endpoints.
 backward compatibility).  Set to NIL in security-sensitive environments
 to disable server-directed reconnection.
 
-### CLSEC-2026-0128 — Header injection via CRLF in names/values (MEDIUM)
+### CL-SEC-2026-0128 — Header injection via CRLF in names/values (MEDIUM)
 
 Header names and values were not validated before serialization.
 
