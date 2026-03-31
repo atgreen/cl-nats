@@ -260,19 +260,19 @@ server from redirecting the client to attacker-controlled endpoints.")
              :message (format nil "Payload ~:D bytes exceeds maximum ~:D"
                               byte-count *max-payload-size*)))
     (let ((payload (transport-read-bytes transport byte-count)))
-    ;; Read trailing CRLF
-    (transport-read-line transport)
-    (let ((msg (make-message :subject (parsed-msg-subject parsed)
-                             :sid (parsed-msg-sid parsed)
-                             :reply-to (parsed-msg-reply-to parsed)
-                             :data payload)))
-      ;; Check if this is a response to a pending request
-      (let ((chan (lookup-request-channel conn (parsed-msg-subject parsed))))
-        (if chan
-            (fulfill-request-channel chan msg)
-            (registry-dispatch (connection-registry conn)
-                               (parsed-msg-sid parsed) msg
-                               :on-error (connection-on-error conn)))))))
+      ;; Read trailing CRLF
+      (transport-read-line transport)
+      (let ((msg (make-message :subject (parsed-msg-subject parsed)
+                               :sid (parsed-msg-sid parsed)
+                               :reply-to (parsed-msg-reply-to parsed)
+                               :data payload)))
+        ;; Check if this is a response to a pending request
+        (let ((chan (lookup-request-channel conn (parsed-msg-subject parsed))))
+          (if chan
+              (fulfill-request-channel chan msg)
+              (registry-dispatch (connection-registry conn)
+                                 (parsed-msg-sid parsed) msg
+                                 :on-error (connection-on-error conn))))))))
 
 (defun handle-hmsg (conn parsed)
   "Handle an HMSG: read payload bytes, split headers, create message, dispatch."
@@ -290,34 +290,34 @@ server from redirecting the client to attacker-controlled endpoints.")
              :line (format nil "HMSG header-bytes=~D total-bytes=~D" header-bytes total-bytes)
              :message "Header bytes exceeds total bytes"))
     (let ((all-data (transport-read-bytes transport total-bytes)))
-    ;; Read trailing CRLF
-    (transport-read-line transport)
-    (let* ((header-octets (subseq all-data 0 header-bytes))
-           (payload (subseq all-data header-bytes))
-           (headers nil)
-           (status nil))
-      (multiple-value-setq (headers status)
-        (parse-headers header-octets))
-      ;; Check for no-responders (status 503)
-      (when (and status (= status 503))
-        ;; This is a no-responders notification for a request
-        (let ((chan (lookup-request-channel conn (parsed-hmsg-subject parsed))))
-          (when chan
-            (fulfill-request-channel-error chan
-                                           (make-condition 'nats-no-responders
-                                                           :subject (parsed-hmsg-subject parsed)))
-            (return-from handle-hmsg))))
-      (let ((msg (make-message :subject (parsed-hmsg-subject parsed)
-                               :sid (parsed-hmsg-sid parsed)
-                               :reply-to (parsed-hmsg-reply-to parsed)
-                               :data payload
-                               :headers headers)))
-        (let ((chan (lookup-request-channel conn (parsed-hmsg-subject parsed))))
-          (if chan
-              (fulfill-request-channel chan msg)
-              (registry-dispatch (connection-registry conn)
-                                 (parsed-hmsg-sid parsed) msg
-                                 :on-error (connection-on-error conn))))))))
+      ;; Read trailing CRLF
+      (transport-read-line transport)
+      (let* ((header-octets (subseq all-data 0 header-bytes))
+             (payload (subseq all-data header-bytes))
+             (headers nil)
+             (status nil))
+        (multiple-value-setq (headers status)
+          (parse-headers header-octets))
+        ;; Check for no-responders (status 503)
+        (when (and status (= status 503))
+          ;; This is a no-responders notification for a request
+          (let ((chan (lookup-request-channel conn (parsed-hmsg-subject parsed))))
+            (when chan
+              (fulfill-request-channel-error chan
+                                             (make-condition 'nats-no-responders
+                                                             :subject (parsed-hmsg-subject parsed)))
+              (return-from handle-hmsg))))
+        (let ((msg (make-message :subject (parsed-hmsg-subject parsed)
+                                 :sid (parsed-hmsg-sid parsed)
+                                 :reply-to (parsed-hmsg-reply-to parsed)
+                                 :data payload
+                                 :headers headers)))
+          (let ((chan (lookup-request-channel conn (parsed-hmsg-subject parsed))))
+            (if chan
+                (fulfill-request-channel chan msg)
+                (registry-dispatch (connection-registry conn)
+                                   (parsed-hmsg-sid parsed) msg
+                                   :on-error (connection-on-error conn)))))))))
 
 (defun handle-ping (conn)
   "Respond to server PING with PONG."
